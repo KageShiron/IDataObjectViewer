@@ -4,9 +4,131 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:IDataObjectViewer"
+        xmlns:gen="clr-namespace:System.Collections.Generic;assembly=mscorlib"
         mc:Ignorable="d"
-        Title="MainWindow" Height="350" Width="525">
+        Title="MainWindow" Height="375.424" Width="636.299">
+    <Window.Resources>
+        <local:DecHexConverter x:Key="decHexConv" />
+        <local:FileDescriptorConverter x:Key="fileDescriptorConv" />
+    </Window.Resources>
     <Grid>
-        
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="2"/>
+            <ColumnDefinition Width="*"/>
+        </Grid.ColumnDefinitions>
+
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"></RowDefinition>
+                <RowDefinition Height="*"></RowDefinition>
+            </Grid.RowDefinitions>
+            <Button Click="Clipboard_Click">Clipboard</Button>
+            <ListView x:Name="ListBox" Grid.Row="1" VerticalAlignment="Stretch" Background="#EFE" AllowDrop="True" Drop="Listbox_Drop"
+                     ItemsSource="{Binding Formats}" DisplayMemberPath="Format.Name" SelectedItem="{Binding SelectedFormat}">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="ID" DisplayMemberBinding="{Binding ., Converter={StaticResource decHexConv}}" />
+                        <GridViewColumn Header="Name" DisplayMemberBinding="{Binding DataObjectFormat.FormatName}" />
+                        <GridViewColumn Header="Well Knwon" DisplayMemberBinding="{Binding DataObjectFormat.WellKnownName}"/>
+                        <GridViewColumn Header="Canonical" DisplayMemberBinding="{Binding DataObjectFormat.Canonical}" />
+                    </GridView>
+                </ListView.View>
+            </ListView>
+        </Grid>
+        <GridSplitter Grid.Column="1" HorizontalAlignment="Stretch" Width="2" />
+        <TabControl Grid.Column="2">
+            <TabItem Header="BasicInfo">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition ></RowDefinition>
+                        <RowDefinition ></RowDefinition>
+                    </Grid.RowDefinitions>
+                    <ListView Grid.Row="0" ItemsSource="{Binding BasicInfo}" >
+                        <ListView.ItemContainerStyle>
+                            <Style TargetType="ListViewItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            </Style>
+                        </ListView.ItemContainerStyle>
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="Key" DisplayMemberBinding="{Binding Key}" ></GridViewColumn>
+                                <GridViewColumn Header="Value">
+                                    <GridViewColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <TextBox Text="{Binding Value,Mode=OneWay}" IsReadOnly="True" BorderBrush="Transparent" />
+                                        </DataTemplate>
+                                    </GridViewColumn.CellTemplate>
+                                </GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                    <!--   <TextBox Text="{Binding SelectedItem.Tymed,ElementName=ListBox,Mode=OneWay}"></TextBox> -->
+
+                    <Grid Grid.Row="1" Name="hexGrid"></Grid>
+                </Grid>
+            </TabItem>
+            <TabItem Header="String">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"></RowDefinition>
+                        <RowDefinition ></RowDefinition>
+                    </Grid.RowDefinitions>
+                    <StackPanel Orientation="Horizontal">
+                        <CheckBox VerticalContentAlignment="Center" x:Name="TextWrapping">折り返し</CheckBox>
+                        <CheckBox VerticalContentAlignment="Center" Margin="0,0,10,0" IsChecked="{Binding ShowAllEncodings}" Content="全文字コードを表示"></CheckBox>
+                        <ComboBox x:Name="EncodingCombo" SelectedItem="{Binding SelectedEncoding}" DisplayMemberPath="EncodingName" ItemsSource="{Binding Encodings , Mode=OneWay}" ></ComboBox>
+                    </StackPanel>
+                    <TextBox Grid.Row="1" Text="{Binding Text , Mode=OneWay}" IsReadOnly="True">
+                       <TextBox.Style>
+                           <Style TargetType="{x:Type TextBox}">
+                                <Style.Triggers>
+                                    <DataTrigger Binding="{Binding IsChecked , ElementName=TextWrapping}" Value="True">
+                                        <Setter Property="TextWrapping" Value="Wrap" />
+                                    </DataTrigger>
+                                </Style.Triggers>
+                           </Style>
+                       </TextBox.Style>
+                       
+                        </TextBox>
+
+                </Grid>
+            </TabItem>
+            <TabItem Header="Files">
+                <TreeView ItemsSource="{Binding Files}">
+
+                </TreeView>
+            </TabItem>
+            <TabItem Header="File記述子">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition />
+                        <RowDefinition />
+                    </Grid.RowDefinitions>
+                    <ListBox ItemsSource="{Binding Files}" DisplayMemberPath="FileName" x:Name="FileDescListBox"></ListBox>
+                    <ListView Grid.Row="1" ItemsSource="{Binding SelectedValue,ElementName=FileDescListBox,Converter={StaticResource fileDescriptorConv}}">
+                        <ListView.View>
+                            <GridView>
+                                <GridViewColumn Header="Key" DisplayMemberBinding="{Binding Key}" ></GridViewColumn>
+                                <GridViewColumn Header="Value" DisplayMemberBinding="{Binding Value}" ></GridViewColumn>
+                            </GridView>
+                        </ListView.View>
+                    </ListView>
+                </Grid>
+            </TabItem>
+            <TabItem Header="Locale">
+                <ListView ItemsSource="{Binding Locale}">
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn Header="Key" DisplayMemberBinding="{Binding Key}" ></GridViewColumn>
+                            <GridViewColumn Header="Value" DisplayMemberBinding="{Binding Value}" ></GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+            </TabItem>
+        </TabControl>
     </Grid>
 </Window>
+
+
+
