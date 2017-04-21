@@ -49,6 +49,7 @@
     <Compile Include="DataObjectUtils.cs" />
     <Compile Include="FileDescriptor.cs" />
     <Compile Include="IDataObjectHelper.cs" />
+    <Compile Include="InteropUtils.cs" />
     <Compile Include="IStream.cs" />
     <Compile Include="StgMediumExtensions.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

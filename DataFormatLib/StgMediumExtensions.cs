@@ -186,7 +186,7 @@ namespace DataFormatLib
                 uint size = GlobalSize(locked).ToUInt32();
                 byte[] d = new byte[size];
                 Marshal.Copy(locked, d, 0, (int)size);
-                return new MemoryStream(d);
+                return new MemoryStream(d, 0, (int) size, false, true);
             }
             finally
             {

@@ -63,6 +63,10 @@ namespace ClipboardPeek
                 {
                     return new FormatItem(f, null, dataobj.GetBitmap());
                 }
+                if (f.FormatId == DataFormatIdentifies.CF_DIB)
+                {
+                    return new FormatItem(f, dataobj.GetStream(f.FormatId), dataobj.GetDib());
+                }
                 if (f.FormatId.Id == DataFormatIdentifies.CF_ENHMETAFILE.Id)
                 {
                     return new FormatItem(f, dataobj.GetStream(f.FormatId), dataobj.GetEnhancedMetafile());

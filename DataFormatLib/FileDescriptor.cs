@@ -36,7 +36,7 @@ namespace DataFormatLib
                 var list = new FileDescriptor[length];
                 for (int i = 0; i < length; i++)
                 {
-                    FILEDESCRIPTOR fd = ReadFrom<FILEDESCRIPTOR>(br);
+                    FILEDESCRIPTOR fd = InteropUtils.ReadFrom<FILEDESCRIPTOR>(br);
                     list[i] = new FileDescriptor(fd);
                 }
                 return list;
@@ -54,21 +54,6 @@ namespace DataFormatLib
         public string FileName => _fd.cFileName;
 
         #region private members
-
-        static TStruct ReadFrom<TStruct>(BinaryReader reader) where TStruct : struct
-        {
-            var buffer = reader.ReadBytes(Marshal.SizeOf(typeof(TStruct)));
-            var handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
-
-            try
-            {
-                return (TStruct)Marshal.PtrToStructure(handle.AddrOfPinnedObject(), typeof(TStruct));
-            }
-            finally
-            {
-                handle.Free();
-            }
-        }
 
         private TResult? ValueOrNull<TResult>(FileDescriptorFlags flag, TResult value) where TResult : struct
         {
