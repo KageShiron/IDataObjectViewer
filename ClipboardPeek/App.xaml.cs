@@ -23,8 +23,8 @@ namespace ClipboardPeek
                 "大変申し訳けありません。システムエラーが発生しました。\n ({0} {1})\n\n{2}",
                 e.GetType(), e.Message, e.StackTrace);
             logger.Error("Unhundled error", e);
-            MessageBox.Show(message);
-            Environment.Exit(1);
+            if (MessageBox.Show(message, "", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                Environment.Exit(1);
         }
 
         private void App_OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)

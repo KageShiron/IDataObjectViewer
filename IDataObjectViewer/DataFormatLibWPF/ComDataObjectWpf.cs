@@ -25,6 +25,7 @@ namespace DataFormatLibWPF
             try
             {
                 if (stg.tymed != TYMED.TYMED_GDI) throw new InvalidTymedException();
+                //Imaging.CreateBitmapSourceFromMemorySection()
                 return Imaging.CreateBitmapSourceFromHBitmap(stg.unionmember, IntPtr.Zero, Int32Rect.Empty,
                     BitmapSizeOptions.FromEmptyOptions());
             }

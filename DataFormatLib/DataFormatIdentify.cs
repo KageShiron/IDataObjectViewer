@@ -323,7 +323,9 @@ namespace DataFormatLib
             public FORMATETC GetFormatEtc(int index = -1, DVASPECT aspect = DVASPECT.DVASPECT_CONTENT)
                 => DataObjectUtils.GetFormatEtc(Id, index, aspect);
 
-
-
+            public override string ToString()
+            {
+                return NativeName + (ConstantName != string.Empty ? $"(#{ConstantName})" : "");
+            }
         }
     }

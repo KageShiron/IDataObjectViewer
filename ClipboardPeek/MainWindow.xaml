@@ -9,12 +9,11 @@
         xmlns:Themes="clr-namespace:Microsoft.Windows.Themes;assembly=PresentationFramework.Aero2"
         xmlns:dataFormatLib="clr-namespace:DataFormatLib;assembly=DataFormatLib"
         xmlns:system="clr-namespace:System;assembly=mscorlib"
+        xmlns:toolkit="clr-namespace:System.Windows.Controls;assembly=System.Windows.Controls.Input.Toolkit"
+        xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
         x:Class="ClipboardPeek.MainWindow"
         mc:Ignorable="d"
         Title="MainWindow" Height="600" Width="700">
-    <Fluent:RibbonWindow.DataContext>
-        <local:ViewModel />
-    </Fluent:RibbonWindow.DataContext>
     <DockPanel>
         <Fluent:Ribbon DockPanel.Dock="Top">
             <Fluent:RibbonTabItem Header="Home">
@@ -409,7 +408,9 @@
                         <!--   <TextBox Text="{Binding SelectedItem.Tymed,ElementName=ListBox,Mode=OneWay}"></TextBox> -->
 
                         <GridSplitter Grid.Row="1" VerticalAlignment="Stretch" Height="2" />
-                        <Grid Grid.Row="2"/>
+                        <Grid Grid.Row="2">
+                            
+                        </Grid>
                     </Grid>
                 </TabItem>
                 <TabItem Header="テキスト&#xA;/ダンプ">
@@ -498,16 +499,32 @@
                             <Label Content="{Binding Image.Value.Height}" />
                         </StackPanel>
                         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" CanContentScroll="True">
-                            <Image Stretch="Fill" Source="{Binding Image.Value}"
-                               Width="{Binding RelativeSource={RelativeSource Self}, Path=Source.PixelWidth}"
-                               Height="{Binding RelativeSource={RelativeSource Self}, Path=Source.PixelHeight}"/>
+                            <StackPanel>
+                                <Image Stretch="Fill" Source="{Binding Image.Value}"
+                                   Width="{Binding RelativeSource={RelativeSource Self}, Path=Source.PixelWidth}"
+                                   Height="{Binding RelativeSource={RelativeSource Self}, Path=Source.PixelHeight}"
+                                   Visibility="{Binding RelativeSource={RelativeSource Self},Path=ImageVisibility.Value}"/>
+                                <InkCanvas EditingMode="None" IsEnabled="False" Strokes="{Binding InkStrokes.Value}" Visibility="{Binding InkCanvasVisibility.Value}" />
+                            </StackPanel>
                         </ScrollViewer>
                     </Grid>
                 </TabItem>
-                <TabItem Header="Rtf" />
-                <TabItem Header="HTML"></TabItem>
+                <TabItem Header="Rtf">
+                    <xctk:RichTextBox x:Name="_richTextBox" Grid.Row="1" BorderBrush="Gray" FontFamily="Meiryo UI"
+                                     ScrollViewer.VerticalScrollBarVisibility="Auto" Text="{Binding Rtf.Value}">
+                        <xctk:RichTextBox.TextFormatter>
+                            <xctk:RtfFormatter />
+                        </xctk:RichTextBox.TextFormatter>
+                    </xctk:RichTextBox>
+                </TabItem>
+                <TabItem Header="HTML">
+                    <RichTextBox></RichTextBox>
+                </TabItem>
             </TabControl>
         </Grid>
     </DockPanel>
 
 </Fluent:RibbonWindow>
+
+
+

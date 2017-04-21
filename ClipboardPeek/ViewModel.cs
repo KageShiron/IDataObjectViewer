@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -7,7 +9,9 @@ using System.Reactive.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Ink;
 using System.Windows.Media;
+using Be.Windows.Forms;
 using DataFormatLib;
 using Reactive.Bindings;
 using Reactive.Bindings.Extensions;
@@ -15,13 +19,17 @@ using Reactive.Bindings.ObjectExtensions;
 
 namespace ClipboardPeek
 {
-    public class ViewModel
+    public class ViewModel : INotifyDataErrorInfo
     {
         private Model model;
+        private HexBox hex;
+
+        public event EventHandler<DataErrorsChangedEventArgs> ErrorsChanged;
 
         public ReactiveProperty<IEnumerable<FormatItem>> Formats { get; private set; }
         public ReactiveCommand LoadFromClipboardCommand { get; }
         public ReactiveProperty<string> Text { get; private set; }
+        public ReactiveProperty<string> Rtf { get; private set; }
 
         public ReactiveProperty<FormatItem> SelectedFormat { get; private set; }
 
@@ -30,6 +38,9 @@ namespace ClipboardPeek
         public ReactiveProperty<Encoding> SelectedEncoding { get; set; }
         public ReactiveProperty<object> Files { get; private set; }
         public ReactiveProperty<ImageSource> Image { get; private set; }
+        public ReactiveProperty<System.Windows.Ink.StrokeCollection> InkStrokes { get; private set; }
+        public ReactiveProperty<Visibility> ImageVisibility { get; private set; }
+        public ReactiveProperty<Visibility> InkCanvasVisibility { get; private set; }
 
         public IEnumerable<Encoding> Encodings { get; set; } = new Encoding[]
         {
@@ -42,6 +53,13 @@ namespace ClipboardPeek
             Encoding.GetEncoding("euc-jp")
         };
 
+        public bool HasErrors
+        {
+            get
+            {
+                throw new NotImplementedException();
+            }
+        }
 
         private static IEnumerable<KeyValuePair<string,string>> CreateBasicInfo(FormatItem formatItem)
         {
@@ -58,7 +76,7 @@ namespace ClipboardPeek
                     {"Ptd", "0x"+s.PtdNull.ToString("X"+(IntPtr.Size*2))},
                     {"DvAspect", s.DvAspect.ToString()},
                     {"Canonical", s.Canonical.ToString()},
-                    //{"Size", s.Binary?.Length.ToString()},
+                    {"Size", formatItem.Stream.Length.ToString("#,0")},
                     {"WellKnown", s.FormatId.ConstantName},
                 };
 
@@ -93,17 +111,33 @@ namespace ClipboardPeek
             item.Stream.Seek(0, SeekOrigin.Begin);
             using (var b = new StreamReader(item.Stream, enc, true, 1024, true))
             {
-                char[] str = new char[5000];
+                /*char[] str = new char[5000];
                 int count = b.Read(str, 0, 5000);
-                if (count <= 0) return "";
-                return new string(str, 0, count - 1) + (count >= 5000 ? "\n\r(省略されました)" : "");
+                if (count <= 0) return "";*/
+                
+                return b.ReadToEnd();//new string(str, 0, count - 1) + (count >= 5000 ? "\n\r(省略されました)" : "");
             }
         }
-    
 
-        public ViewModel()
+        private static StrokeCollection GetStrokeCollection( FormatItem x )
         {
+            if (x?.Format?.FormatId?.NativeName == "Ink Serialized Format")
+            {
+                x.Stream.Seek(0, SeekOrigin.Begin);
+                var y = new StrokeCollection(x.Stream);
+                return y;
+            }
+            return null;
+        }
 
+        public IEnumerable GetErrors(string propertyName)
+        {
+            throw new NotImplementedException();
+        }
+
+        public ViewModel( HexBox hex )
+        {
+            this.hex = hex;
             model = new Model();
             this.Formats = model.ObserveProperty(x => x.DataObjectFormats).ToReactiveProperty();
 
@@ -118,7 +152,25 @@ namespace ClipboardPeek
 
             Files = SelectedFormat.Select(x => x?.Excetra).ToReactiveProperty();
             Image = SelectedFormat.Select(x => x?.Excetra as ImageSource).ToReactiveProperty();
+            InkStrokes = SelectedFormat.Select(GetStrokeCollection).ToReactiveProperty();
 
+            ImageVisibility = Image.Select(x => x == null ? Visibility.Collapsed : Visibility.Visible).ToReactiveProperty();
+            InkCanvasVisibility =　InkStrokes.Select(x => x == null ? Visibility.Collapsed : Visibility.Visible)
+                    .ToReactiveProperty();
+            Rtf = SelectedFormat.Select(x => ((x?.Format?.FormatId?.NativeName == "Rich Text Format") ? GetString(x, Encoding.UTF8) : "")).ToReactiveProperty();
+
+            SelectedFormat.PropertyChanged += (s, e) =>
+            {
+                if (SelectedFormat?.Value?.Stream == null)
+                {
+                    hex.ByteProvider = new DynamicFileByteProvider(Stream.Null);
+                    return;
+                }
+                var mem = new MemoryStream((int) SelectedFormat.Value.Stream.Length);
+                this.SelectedFormat.Value.Stream.Seek(0, SeekOrigin.Begin);
+                this.SelectedFormat.Value.Stream.CopyTo(mem);
+                hex.ByteProvider = new DynamicFileByteProvider(mem);
+            };
         }
 
     }
