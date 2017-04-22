@@ -108,46 +108,43 @@ namespace DataFormatLibWPF
             DataObject.GetData(ref f, out stg);
             try
             {
-                //var header = new byte[] {0x42, 0x4D, 0, 0, 0, 0, 0, 0, 0, 0, 14, 0, 0, 0};
+                var header = new byte[] { 0x42, 0x4D, 0, 0, 0, 0, 0, 0, 0, 0, 14, 0, 0, 0 };
                 if (stg.tymed != TYMED.TYMED_HGLOBAL) throw new InvalidTymedException();
-                using (var stream = stg.GetManagedStream() as MemoryStream)
+                using (var stream = stg.GetManagedStream(header) as MemoryStream)
                 {
                     var buffer = stream.GetBuffer();
                     var handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
                     try
                     {
-                        var ptr = handle.AddrOfPinnedObject();
+                        var ptr = handle.AddrOfPinnedObject() + 14;
                         var s = (BITMAPINFOHEADER)Marshal.PtrToStructure(ptr, typeof(BITMAPINFOHEADER));
-                        int stride = ((((s.biWidth * s.biBitCount) + 31) & ~31) >> 3);
-                        return
-                            new TransformedBitmap(
-                                BitmapSource.Create(s.biWidth, s.biHeight, 96, 96, GetDibFormat(ref s), null,
-                                    ptr + (int) s.biSize +
-                                    (s.biCompression == BitmapCompressionMode.BI_BITFIELDS ? 16 : 0)
-                                    , buffer.Length, ((((s.biWidth*s.biBitCount) + 31) & ~31) >> 3)),
-                                new ScaleTransform(1,-1));
-/*
-                                                                        
-                                                                                                var ptr = handle.AddrOfPinnedObject();
-                                                                                                var s = (BITMAPINFOHEADER) Marshal.PtrToStructure(ptr , typeof(BITMAPINFOHEADER));
-                                                                                                if (s.biBitCount == 32)
-                                                                                                {
-                                                                                                    int stride = ((((s.biWidth*s.biBitCount) + 31) & ~31) >> 3);
-                                                                                                    return BitmapSource.Create(s.biWidth, s.biHeight, 96, 96, GetDibFormat(ref s), null,
-                                                                                                        ptr + (int) s.biSize + (s.biCompression == BitmapCompressionMode.BI_BITFIELDS ? 16 : 0)
-                                                                                                        , buffer.Length - 14, -((((s.biWidth*s.biBitCount) + 31) & ~31) >> 3));
-                                                                                                }
-                                                                                                else
-                                                                                                {
-                                                                                                    stream.Write( BitConverter.GetBytes(stream.Length),2,4 );
-                                                                                                    stream.Seek(0, SeekOrigin.Begin);
-                                                                                                    return BitmapFrame.Create(stream,BitmapCreateOptions.None,BitmapCacheOption.Default);
-                                                                                                }*/
+                        if (s.biBitCount == 32)
+                        {
+                            int stride = ((((s.biWidth * s.biBitCount) + 31) & ~31) >> 3);
+                            return
+                                new TransformedBitmap(
+                                    BitmapSource.Create(s.biWidth, s.biHeight, 96, 96, GetDibFormat(ref s), null,
+                                        ptr + (int)s.biSize +
+                                        (s.biCompression == BitmapCompressionMode.BI_BITFIELDS ? 16 : 0)
+                                        , buffer.Length - 14, ((((s.biWidth * s.biBitCount) + 31) & ~31) >> 3)),
+                                    new ScaleTransform(1, -1));
+                        }
+                        else
+                        {
+                            BitConverter.GetBytes(buffer.Length).CopyTo(buffer, 2);
+                            BitConverter.GetBytes(14  + (int)s.biSize + (s.biClrUsed == 0 ? (1 << (int)(s.biBitCount + 2)) : (int)s.biClrUsed * 4)).CopyTo(buffer, 10);
+                            //stream.WriteTo(File.OpenWrite(@"C:\Users\mutsuki\Documents\無題2.bmp"));
+                            //return BitmapFrame.Create( File.Open(@"C:\Users\mutsuki\Documents\無題2.bmp",FileMode.Open), BitmapCreateOptions.None, BitmapCacheOption.Default);
+                        }
                     }
                     finally
                     {
                         handle.Free();
                     }
+                    stream.Seek(0, SeekOrigin.Begin);
+                    
+                    return BitmapFrame.Create(stream);
+
 
                     /*
                 try
