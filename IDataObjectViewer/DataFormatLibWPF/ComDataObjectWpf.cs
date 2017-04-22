@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -107,11 +108,60 @@ namespace DataFormatLibWPF
             DataObject.GetData(ref f, out stg);
             try
             {
+                //var header = new byte[] {0x42, 0x4D, 0, 0, 0, 0, 0, 0, 0, 0, 14, 0, 0, 0};
                 if (stg.tymed != TYMED.TYMED_HGLOBAL) throw new InvalidTymedException();
                 using (var stream = stg.GetManagedStream() as MemoryStream)
                 {
-
                     var buffer = stream.GetBuffer();
+                    var handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
+                    try
+                    {
+                        var ptr = handle.AddrOfPinnedObject();
+                        var s = (BITMAPINFOHEADER)Marshal.PtrToStructure(ptr, typeof(BITMAPINFOHEADER));
+                        int stride = ((((s.biWidth * s.biBitCount) + 31) & ~31) >> 3);
+                        return
+                            new TransformedBitmap(
+                                BitmapSource.Create(s.biWidth, s.biHeight, 96, 96, GetDibFormat(ref s), null,
+                                    ptr + (int) s.biSize +
+                                    (s.biCompression == BitmapCompressionMode.BI_BITFIELDS ? 16 : 0)
+                                    , buffer.Length, ((((s.biWidth*s.biBitCount) + 31) & ~31) >> 3)),
+                                new ScaleTransform(1,-1));
+/*
+                                                                        
+                                                                                                var ptr = handle.AddrOfPinnedObject();
+                                                                                                var s = (BITMAPINFOHEADER) Marshal.PtrToStructure(ptr , typeof(BITMAPINFOHEADER));
+                                                                                                if (s.biBitCount == 32)
+                                                                                                {
+                                                                                                    int stride = ((((s.biWidth*s.biBitCount) + 31) & ~31) >> 3);
+                                                                                                    return BitmapSource.Create(s.biWidth, s.biHeight, 96, 96, GetDibFormat(ref s), null,
+                                                                                                        ptr + (int) s.biSize + (s.biCompression == BitmapCompressionMode.BI_BITFIELDS ? 16 : 0)
+                                                                                                        , buffer.Length - 14, -((((s.biWidth*s.biBitCount) + 31) & ~31) >> 3));
+                                                                                                }
+                                                                                                else
+                                                                                                {
+                                                                                                    stream.Write( BitConverter.GetBytes(stream.Length),2,4 );
+                                                                                                    stream.Seek(0, SeekOrigin.Begin);
+                                                                                                    return BitmapFrame.Create(stream,BitmapCreateOptions.None,BitmapCacheOption.Default);
+                                                                                                }*/
+                    }
+                    finally
+                    {
+                        handle.Free();
+                    }
+
+                    /*
+                try
+                {
+                    var st = new MemoryStream(buffer.Length + 14);
+
+                    using (var b = new BinaryWriter(st, Encoding.UTF8, true))
+                    {
+
+                        st.Seek(0, SeekOrigin.Begin);
+                        return BitmapFrame.Create(st, BitmapCreateOptions.PreservePixelFormat,
+                                BitmapCacheOption.Default);
+                        // .Create(st, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+                    }
                     var handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
                     Bitmap bmp = null;
 
@@ -119,60 +169,20 @@ namespace DataFormatLibWPF
                     {
 
                         var ptr = handle.AddrOfPinnedObject();
-                        var s = (BITMAPINFOHEADER) Marshal.PtrToStructure(ptr, typeof(BITMAPINFOHEADER));
+                        var s = (BITMAPINFOHEADER)Marshal.PtrToStructure(ptr, typeof(BITMAPINFOHEADER));
                         int stride = ((((s.biWidth*s.biBitCount) + 31) & ~31) >> 3);
-                        return BitmapSource.Create(s.biWidth, s.biHeight, 96, 96, GetDibFormat(ref s), null,
-                            ptr + (int)s.biSize + (s.biCompression == BitmapCompressionMode.BI_BITFIELDS ? 16 : 0)
-                            , buffer.Length, -((((s.biWidth*s.biBitCount) + 31) & ~31) >> 3));
-                    }
-                    finally
-                    {
-                        bmp?.Dispose();
-                        handle.Free();
-                        GC.KeepAlive(buffer);
-                    }
+                        bmp = new Bitmap(s.biWidth, 10, -stride,
+                            GetDibFormat(ref s), ptr + buffer.Length);// + (int)s.biSize + (s.biCompression == BitmapCompressionMode.BI_BITFIELDS ? 16 : 0) + (int)s.biSizeImage);//+ 40 + (int)s.biClrUsed * 4 + stride * (s.biHeight)) ;
+                        return Imaging.CreateBitmapSourceFromHBitmap(bmp.GetHbitmap(), IntPtr.Zero, Int32Rect.Empty,
+                            BitmapSizeOptions.FromEmptyOptions());
 
-                    try
-                    {
-                        var st = new MemoryStream(buffer.Length + 14);
-
-                        using (var b = new BinaryWriter(st, Encoding.UTF8, true))
-                        {
-                            b.Write((byte)0x42);
-                            b.Write((byte)0x4D);
-                            b.Write(buffer.Length + 14);
-                            b.Write((short)0);
-                            b.Write((short)0);
-                            b.Write(14);
-                            b.Write(buffer);
-
-                            st.Seek(0, SeekOrigin.Begin);
-                            return BitmapFrame.Create(st, BitmapCreateOptions.PreservePixelFormat,
-                                    BitmapCacheOption.Default);
-                            // .Create(st, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
-                        }
-                        /*
-                        var handle = GCHandle.Alloc(buffer, GCHandleType.Pinned);
-                        Bitmap bmp = null;
-
-                        try
-                        {
-
-                            var ptr = handle.AddrOfPinnedObject();
-                            var s = (BITMAPINFOHEADER)Marshal.PtrToStructure(ptr, typeof(BITMAPINFOHEADER));
-                            int stride = ((((s.biWidth*s.biBitCount) + 31) & ~31) >> 3);
-                            bmp = new Bitmap(s.biWidth, 10, -stride,
-                                GetDibFormat(ref s), ptr + buffer.Length);// + (int)s.biSize + (s.biCompression == BitmapCompressionMode.BI_BITFIELDS ? 16 : 0) + (int)s.biSizeImage);//+ 40 + (int)s.biClrUsed * 4 + stride * (s.biHeight)) ;
-                            return Imaging.CreateBitmapSourceFromHBitmap(bmp.GetHbitmap(), IntPtr.Zero, Int32Rect.Empty,
-                                BitmapSizeOptions.FromEmptyOptions());
-                        */
-                    }
-                    finally
-                    {
-                        bmp?.Dispose();
-                        handle.Free();
-                        GC.KeepAlive(buffer);
-                    }
+                }
+                finally
+                {
+                    //bmp?.Dispose();
+                    handle.Free();
+                    GC.KeepAlive(buffer);
+                }*/
 
                 }
             }

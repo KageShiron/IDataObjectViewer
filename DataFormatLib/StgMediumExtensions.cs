@@ -111,13 +111,18 @@ namespace DataFormatLib
         /// (STGMEDIUMの解放は行いません)
         /// </summary>
         /// <param name="stg">HGLOBAL,ISTREAM,MFPICT,ENHMFのいずれかのSTGMEDIUMを取得します</param>
+        /// <param name="header">取得するストリームの先頭に書き込むヘッダ(現在HGLOBALのみ対応)</param>
         /// <returns>MangedメモリにコピーしたStream</returns>
-        public static Stream GetManagedStream(this STGMEDIUM stg)
+        public static Stream GetManagedStream(this STGMEDIUM stg,byte[] header = null)
         {
+            if (stg.tymed != TYMED.TYMED_HGLOBAL && header != null)
+            {
+                throw new ArgumentException("headerはstg.tymed == TYMED.TYMED_HGLOBALの場合のみ使用可能です",nameof(header));
+            }
             switch (stg.tymed)
             {
                 case TYMED.TYMED_HGLOBAL:
-                    return StgMediumExtensions.CreateStreamFromHglobal(stg.unionmember);
+                    return StgMediumExtensions.CreateStreamFromHglobal(stg.unionmember,header);
                 case TYMED.TYMED_FILE:
                     throw new NotImplementedException("WHAT APP USE TYMED_FILE!!??");
                 case TYMED.TYMED_ISTREAM:
@@ -177,16 +182,19 @@ namespace DataFormatLib
         /// HGLOBALの内容をコピーしたMemoryStreamを作成します。
         /// </summary>
         /// <param name="hGlobal">データを格納したHGLOBAL</param>
+        /// <param name="header">ストリームの先頭に書き込むデータ</param>
         /// <returns>作成したStream</returns>
-        private static Stream CreateStreamFromHglobal(IntPtr hGlobal)
+        private static Stream CreateStreamFromHglobal(IntPtr hGlobal , byte[] header = null)
         {
             try
             {
                 IntPtr locked = GlobalLock(hGlobal);
-                uint size = GlobalSize(locked).ToUInt32();
+                uint headerLen = (uint) (header?.Length ?? 0);
+                uint size = GlobalSize(locked).ToUInt32() + headerLen ;
                 byte[] d = new byte[size];
-                Marshal.Copy(locked, d, 0, (int)size);
-                return new MemoryStream(d, 0, (int) size, false, true);
+                if(headerLen > 0)header.CopyTo(d,0);
+                Marshal.Copy(locked,d,(int) headerLen,  (int)(size - headerLen));
+                return new MemoryStream(d, 0, (int) size, true, true);
             }
             finally
             {
@@ -199,10 +207,10 @@ namespace DataFormatLib
         /// </summary>
         /// <param name="iStream">データを格納したIStream</param>
         /// <returns>作成したStream</returns>
-        private static Stream CreateStreamFromIStream(IntPtr iStream)
+        private static Stream CreateStreamFromIStream(IntPtr iStream )
         {
             IStream s = (IStream)Marshal.GetObjectForIUnknown(iStream);
-            STATSTG stat = new STATSTG();
+            STATSTG stat;
             s.Stat(out stat, 0);
             byte[] bin = new byte[stat.cbSize];
             long _;
