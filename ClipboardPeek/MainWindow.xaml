@@ -11,6 +11,8 @@
         xmlns:system="clr-namespace:System;assembly=mscorlib"
         xmlns:toolkit="clr-namespace:System.Windows.Controls;assembly=System.Windows.Controls.Input.Toolkit"
         xmlns:xctk="http://schemas.xceed.com/wpf/xaml/toolkit"
+        xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity"
+        xmlns:interactivity="clr-namespace:Reactive.Bindings.Interactivity;assembly=ReactiveProperty.NET45"
         x:Class="ClipboardPeek.MainWindow"
         mc:Ignorable="d"
         Title="MainWindow" Height="600" Width="700">
@@ -32,7 +34,13 @@
                         <Fluent:Button.Template>
                             <ControlTemplate TargetType="{x:Type Button}">
                                 <Border Background="#DFF" BorderBrush="#999" SnapsToDevicePixels="True" BorderThickness="1" Margin="2,2,2,2" Padding="5,5,5,5">
-                                    <TextBlock VerticalAlignment="Center"><Run Text="ここにドロップ"/><LineBreak /><Run Text="(全形式)"/></TextBlock>
+                                    <TextBlock AllowDrop="True" VerticalAlignment="Center"><Run Text="ここにドロップ"/><LineBreak /><Run Text="(全形式)"/>
+                                        <i:Interaction.Triggers>
+                                            <i:EventTrigger EventName="Drop">
+                                                <interactivity:EventToReactiveCommand Command="{Binding DropCommand}" />
+                                            </i:EventTrigger>
+                                        </i:Interaction.Triggers>
+                                    </TextBlock>
                                 </Border>
                             </ControlTemplate>
                         </Fluent:Button.Template>
@@ -46,6 +54,10 @@
                             </ControlTemplate>
                         </Fluent:Button.Template>
                     </Fluent:Button>
+                </Fluent:RibbonGroupBox>
+                <Fluent:RibbonGroupBox>
+                    <Fluent:CheckBox IsChecked="{Binding AllFormat.Value}" Header="全形式をスキャン" ToolTip="IDataObjectによって列挙されないフォーマットも総当りで確認します。結果にはOSやソフトが自動で追加したフォーマットなどが含まれます" />
+
                 </Fluent:RibbonGroupBox>
                 <Fluent:RibbonGroupBox Header="テキストタブ">
                     <Fluent:CheckBox Margin="0,0,0,0" Header="右端で折り返し" x:Name="TextWrapping" />
@@ -409,7 +421,7 @@
 
                         <GridSplitter Grid.Row="1" VerticalAlignment="Stretch" Height="2" />
                         <Grid Grid.Row="2">
-                            
+
                         </Grid>
                     </Grid>
                 </TabItem>

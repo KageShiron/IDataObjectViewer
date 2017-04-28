@@ -49,7 +49,7 @@ namespace DataFormatLib
 
         [DllImport("gdi32.dll")]
         private static extern uint GetEnhMetaFileBits(IntPtr hemf, uint cbBuffer, [Out] byte[] lpbBuffer);
-
+        
         [DllImport("gdi32.dll")]
         private static extern uint GetEnhMetaFileBits(IntPtr hemf, uint cbBuffer, IntPtr lpbBuffer);
 
@@ -132,8 +132,8 @@ namespace DataFormatLib
                 case TYMED.TYMED_GDI:
                     throw new NotSupportedException();
                 case TYMED.TYMED_MFPICT:
-                    return StgMediumExtensions.CreateStreamFromHglobal(stg.unionmember);
-                    //return StgMediumExtensions.CreateStreamFromMetaFile(stg.unionmember);
+                    //return StgMediumExtensions.CreateStreamFromHglobal(stg.unionmember);
+                    return StgMediumExtensions.CreateStreamFromMetaFile(stg.unionmember);
                 case TYMED.TYMED_ENHMF:
                     return StgMediumExtensions.CreateStreamFromEnhMetaFile(stg.unionmember);
                 case TYMED.TYMED_NULL:

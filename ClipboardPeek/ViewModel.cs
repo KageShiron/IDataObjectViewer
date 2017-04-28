@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reactive.Linq;
+using System.Runtime.InteropServices.ComTypes;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -28,8 +29,10 @@ namespace ClipboardPeek
 
         public ReactiveProperty<IEnumerable<FormatItem>> Formats { get; private set; }
         public ReactiveCommand LoadFromClipboardCommand { get; }
+        public ReactiveCommand DropCommand{ get; }
         public ReactiveProperty<string> Text { get; private set; }
         public ReactiveProperty<string> Rtf { get; private set; }
+        public ReactiveProperty<bool> AllFormat { get; private set; }
 
         public ReactiveProperty<FormatItem> SelectedFormat { get; private set; }
 
@@ -142,14 +145,25 @@ namespace ClipboardPeek
             this.Formats = model.ObserveProperty(x => x.DataObjectFormats).ToReactiveProperty();
 
             SelectedFormat = new ReactiveProperty<FormatItem>();
+            AllFormat = new ReactiveProperty<bool>(false);
 
             LoadFromClipboardCommand = new ReactiveCommand();
-            LoadFromClipboardCommand.Subscribe( _ => model.LoadFromClipboard() );
+            LoadFromClipboardCommand.Subscribe( _ => model.LoadFromClipboard( AllFormat.Value ) );
+
+
+            DropCommand = new ReactiveCommand();
+            DropCommand.Subscribe(e =>
+            {
+
+                //TODO: RPは非同期？ならWordとかのドロップを受けれない
+                var ex = e as DragEventArgs;
+                ex.Effects = DragDropEffects.Copy;
+                model.LoadFromDataObject((System.Runtime.InteropServices.ComTypes.IDataObject) ex.Data);
+            });
 
             BasicInfo = SelectedFormat.Select(CreateBasicInfo).ToReactiveProperty();
             SelectedEncoding = new ReactiveProperty<Encoding>( Encoding.Unicode );
             Text = SelectedFormat.CombineLatest(SelectedEncoding, GetString).ToReactiveProperty();
-
             Files = SelectedFormat.Select(x => x?.Excetra).ToReactiveProperty();
             Image = SelectedFormat.Select(x => x?.Excetra as ImageSource).ToReactiveProperty();
             InkStrokes = SelectedFormat.Select(GetStrokeCollection).ToReactiveProperty();

@@ -51,6 +51,7 @@ namespace DataFormatLibWPF
 
     public class ComDataObjectWpf : ComDataObject
     {
+
         public BitmapSource GetBitmap()
         {
             STGMEDIUM stg = new STGMEDIUM();
@@ -188,6 +189,7 @@ namespace DataFormatLibWPF
                 stg.Release();
             }
         }
+        
 
         [System.Runtime.InteropServices.DllImport("gdi32.dll")]
         public static extern bool DeleteObject(IntPtr hObject);
@@ -218,8 +220,11 @@ namespace DataFormatLibWPF
             DataObject.GetData(ref f, out stg);
             try
             {
+                
+                WmfPlaceableFileHeader header = new WmfPlaceableFileHeader();
+                
                 if (stg.tymed != TYMED.TYMED_MFPICT) throw new InvalidTymedException();
-                using (var image = new Metafile(stg.unionmember, false))
+                using (var image = new Metafile(stg.unionmember,null))
                 {
                     using (var canvas = new Bitmap((int)(image.Size.Width), (int)(image.Size.Height)))
                     using (var graphics = Graphics.FromImage(canvas))

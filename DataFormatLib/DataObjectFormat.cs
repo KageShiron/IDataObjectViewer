@@ -47,11 +47,16 @@ namespace DataFormatLib
             {"ZoneIdentifier", "CFSTR_ZONEIDENTIFIER"}, //  DWORD, to be used with CFSTR_FILECONTENTS data transfers
         };
 
-        public DataObjectFormat( FORMATETC f , int? cannonical = null )
+        public DataObjectFormat( FORMATETC f , int? cannonical = null , bool notDataObject = false )
         {
             try
             {
                 FormatId = DataFormatIdentify.FromId(f.cfFormat);
+                if (notDataObject)
+                {
+                    NotDataObject = true;
+                    return;
+                }
                 DvAspect = f.dwAspect;
                 PtdNull = f.ptd;
                 LIndex = f.lindex;
@@ -71,5 +76,6 @@ namespace DataFormatLib
         public int LIndex { get; }
         public TYMED Tymed { get; }
         public int? Canonical { get; }
+        public bool NotDataObject { get; }
     }
 }

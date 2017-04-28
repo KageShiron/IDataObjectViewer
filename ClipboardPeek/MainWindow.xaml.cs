@@ -15,6 +15,7 @@ using System.Windows.Navigation;
 using System.Windows.Shapes;
 using Be.Windows.Forms;
 using Fluent;
+using MessageBox = System.Windows.Forms.MessageBox;
 
 namespace ClipboardPeek
 {
@@ -38,6 +39,11 @@ namespace ClipboardPeek
             HexGrid.Children.Add(host);
 
             DataContext = new ViewModel(hex);
+        }
+
+        private void UIElement_OnDrop(object sender, DragEventArgs e)
+        {
+            MessageBox.Show(e.Data.GetData("UnicodeText").ToString());
         }
     }
 }
